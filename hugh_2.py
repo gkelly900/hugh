@@ -2,6 +2,10 @@ import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib
+from scipy.stats import linregress
+from sklearn import datasets, linear_model
+from sklearn.metrics import mean_squared_error, r2_score
+
 
 from matplotlib import rc
 
@@ -56,8 +60,9 @@ for year in years:
     min_after = df.Vint_Temp[df["Surrond"] == year].min()
     mean_after = df.Vint_Temp[df["Surrond"] == year].mean()
     significance = (mean_before - min_after)/std_before
+    difference = mean_before - min_after
 
-    vint_temp_stats_list.append([year, sulphate, mean_before, std_before, mean_after, min_after, significance])
+    vint_temp_stats_list.append([year, sulphate, mean_before, std_before, mean_after, min_after, difference])
 
     mean_before = df.Bunt_Temp[(df["Before"] == year) & (df["All"] == year)].mean()
     std_before = df.Bunt_Temp[(df["Before"] == year) & (df["All"] == year)].std()
@@ -67,7 +72,7 @@ for year in years:
 
     bunt_temp_stats_list.append([year, sulphate, mean_before, std_before, min_after, significance])
 
-vint_temp_stats_list
+
 
 df_vint = pd.DataFrame(vint_temp_stats_list, columns = ["EruptionYear",
                                                         "SulphateTg",
@@ -75,21 +80,45 @@ df_vint = pd.DataFrame(vint_temp_stats_list, columns = ["EruptionYear",
                                                         "StDevBefore",
                                                         "MeanAfter",
                                                         "MinAfter",
-                                                        "Significance"])
+                                                        "Difference"])
 
 
+x = df_vint.SulphateTg.values
+y = df_vint.Difference.values
+mask = ~np.isnan(x) & ~np.isnan(y)
+x = x[mask].reshape(55, 1)
+y = y[mask].reshape(55, 1)
+
+regr = linear_model.LinearRegression()
+regr.fit(x,y)
+
+y_pred = regr.predict(x)
+regr.intercept_[0]
+
+print('Coefficients: \n', regr.coef_[0][0])
+
+print("Mean squared error: %.2f"
+      % mean_squared_error(y, y_pred))
+
+print('Variance score: %.2f' % r2_score(y,y_pred))
+
+plt.figure(figsize=(12,8))
+plt.scatter(x, y,  color='black')
+plt.plot(x, regr.predict(x), color='blue', linewidth=1)
+plt.xlabel("Sulphate Emission (Tg)")
+plt.ylabel("Temperature Difference (K)")
+plt.title("Linear Regression of Temperature Difference (Vinther) by Sulphate Emission (Gao)")
+plt.axhline(0, color='white', linewidth=4)
+plt.annotate('TempDiff = {0:.3f}*Suphate + {1:.2f}'.format(regr.coef_[0][0],
+                                                 regr.intercept_[0]),
+             xy=(100, 3), fontsize=14
+            )
+plt.annotate('R**2 Score: {0:.2f}'.format(r2_score(y,y_pred)),
+             xy=(100, 2.5), fontsize=14
+            )
+plt.savefig("linear_regression_vint_temp.jpg")
 
 
-
-df_vint
-
-data = np.array(vint_temp_stats_list)
-
-plt.scatter(data[:,5], data[:,1])
-plt.xlabel('Statistical Significance ($\sigma)')
-plt.ylabel("Sulphate Emission (Tg)")
-plt.xlim([-3,5])
-plt.show()
 
 df[(df["All"] == 898)]
 
