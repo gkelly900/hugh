@@ -38,6 +38,7 @@ for i in range(-15,4):
 kob_temp_stats_list = []
 vint_temp_stats_list = []
 bunt_temp_stats_list = []
+wils_precip_stats_list = []
 
 years = df.Surrond.unique()
 i = 1
@@ -72,7 +73,13 @@ for year in years:
 
     bunt_temp_stats_list.append([year, sulphate, mean_before, std_before, min_after, significance])
 
+    mean_before = df.Wilson_Precip[(df["Before"] == year) & (df["All"] == year)].mean()
+    std_before = df.Wilson_Precip[(df["Before"] == year) & (df["All"] == year)].std()
+    min_after = df.Wilson_Precip[df["Surrond"] == year].min()
+    mean_after = df.Wilson_Precip[df["Surrond"] == year].mean()
+    significance = (mean_before - mean_after)/std_before
 
+    wils_precip_stats_list.append([year, sulphate, mean_before, std_before, mean_after, significance])
 
 df_vint = pd.DataFrame(vint_temp_stats_list, columns = ["EruptionYear",
                                                         "SulphateTg",
@@ -118,7 +125,24 @@ plt.annotate('R**2 Score: {0:.2f}'.format(r2_score(y,y_pred)),
             )
 plt.savefig("linear_regression_vint_temp.jpg")
 
+df_wils = pd.DataFrame(wils_precip_stats_list, columns = ["EruptionYear",
+                                                        "SulphateTg",
+                                                        "MeanBefore",
+                                                        "StDevBefore",
+                                                        "MeanAfter",
+                                                        "Significance"])
 
+df_wils
+
+yw = df_wils.SulphateTg.values
+xw = df_wils.Significance.values
+
+plt.figure(figsize=(12,8))
+plt.scatter(xw, yw,  color='green')
+plt.ylabel("Sulphate Emission (Tg)")
+plt.xlabel("Statistical Significance (Standard Deviations)")
+plt.title("Statisitcal Signifcance of Precipitation Changes (Wilson) by Sulphate Emission (Gao)")
+plt.savefig("Wils_Precip_sigbymean.jpg")
 
 df[(df["All"] == 898)]
 
